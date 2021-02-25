@@ -38,8 +38,7 @@ contract IncubatorChef is Ownable, ReentrancyGuard, IIncubatorChef  {
         uint256 allocPoint;             // How many allocation points assigned to this pool. GOOSEs to distribute per block.
         uint256 lastRewardBlock;        // Last block number that GOOSEs distribution occurs.
         uint256 accGoosePerShare;       // Accumulated GOOSEs per share, times 1e12. See below.
-        uint16 depositFeeBP;            // Deposit fee in basis points
-        bool disallowWithdraw;          // Incubators cannot withdraw
+        uint256 depositFeeBP;           // Deposit fee in basis points
         uint256 maxDepositAmount;       // Maximum deposit quota (0 means no limit)
         uint256 currentDepositAmount;   // Current total deposit amount in this pool
     }
@@ -91,7 +90,7 @@ contract IncubatorChef is Ownable, ReentrancyGuard, IIncubatorChef  {
     }
 
     // Add a new lp to the pool. Can only be called by the owner.
-    function add(uint256 _allocPoint, IBEP20 _lpToken, uint16 _depositFeeBP, bool _disallowWithdraw, uint256 _maxDepositAmount, bool _withUpdate) override external onlyOwner {
+    function add(uint256 _allocPoint, IBEP20 _lpToken, uint16 _depositFeeBP, uint256 _maxDepositAmount, bool _withUpdate) override external onlyOwner {
         require(_depositFeeBP <= 2000, "add: FEES CANNOT EXCEED 20%");
         if (_withUpdate) {
             _massUpdatePools();
@@ -104,14 +103,13 @@ contract IncubatorChef is Ownable, ReentrancyGuard, IIncubatorChef  {
             lastRewardBlock: lastRewardBlock,
             accGoosePerShare: 0,
             depositFeeBP: _depositFeeBP,
-            disallowWithdraw: _disallowWithdraw,
             maxDepositAmount: _maxDepositAmount,
             currentDepositAmount: 0
         }));
     }
 
     // Update the given pool's GOOSE allocation point and deposit fee. Can only be called by the owner.
-    function set(uint256 _pid, uint256 _allocPoint, uint16 _depositFeeBP, bool _disallowWithdraw, uint256 _maxDepositAmount, bool _withUpdate) override external onlyOwner {
+    function set(uint256 _pid, uint256 _allocPoint, uint16 _depositFeeBP, uint256 _maxDepositAmount, bool _withUpdate) override external onlyOwner {
         require(_depositFeeBP <= 2000, "add: FEES CANNOT EXCEED 20%");
         if (_withUpdate) {
             _massUpdatePools();
@@ -119,7 +117,6 @@ contract IncubatorChef is Ownable, ReentrancyGuard, IIncubatorChef  {
         totalAllocPoint = totalAllocPoint.sub(poolInfo[_pid].allocPoint).add(_allocPoint);
         poolInfo[_pid].allocPoint = _allocPoint;
         poolInfo[_pid].depositFeeBP = _depositFeeBP;
-        poolInfo[_pid].disallowWithdraw = _disallowWithdraw;
         poolInfo[_pid].maxDepositAmount = _maxDepositAmount;
     }
 
@@ -209,7 +206,6 @@ contract IncubatorChef is Ownable, ReentrancyGuard, IIncubatorChef  {
     function withdraw(uint256 _pid, uint256 _amount) external nonReentrant {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
-        require(!pool.disallowWithdraw, "withdraw: not allowed");
         require(user.amount >= _amount, "withdraw: not good");
         updatePool(_pid);
         uint256 pending = user.amount.mul(pool.accGoosePerShare).div(1e12).sub(user.rewardDebt);

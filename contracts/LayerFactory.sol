@@ -239,14 +239,14 @@ contract LayerFactory is Ownable, ReentrancyGuard, BscConstants {
         emit RemoveLiquidity(layerId, gooseToken, wbnbAddr, balance);
     }
 
-    function addPool(uint256 layerId, uint256 _allocPoint, IBEP20 _lpToken, uint16 _depositFeeBP, bool _disallowWithdraw, uint256 _maxDepositAmount, bool _withUpdate) external onlyAdmins validLayer(layerId) nonReentrant {
+    function addPool(uint256 layerId, uint256 _allocPoint, IBEP20 _lpToken, uint16 _depositFeeBP, uint256 _maxDepositAmount, bool _withUpdate) external onlyAdmins validLayer(layerId) nonReentrant {
         LayerInfo storage layerInfo = layers[layerId];
-        layerInfo.chef.add(_allocPoint, _lpToken, _depositFeeBP, _disallowWithdraw, _maxDepositAmount, _withUpdate);
+        layerInfo.chef.add(_allocPoint, _lpToken, _depositFeeBP, _maxDepositAmount, _withUpdate);
     }
 
-    function setPool(uint256 layerId, uint256 _pid, uint256 _allocPoint, uint16 _depositFeeBP, bool _disallowWithdraw, uint256 _maxDepositAmount, bool _withUpdate) external onlyAdmins validLayer(layerId) nonReentrant {
+    function setPool(uint256 layerId, uint256 _pid, uint256 _allocPoint, uint16 _depositFeeBP, uint256 _maxDepositAmount, bool _withUpdate) external onlyAdmins validLayer(layerId) nonReentrant {
         LayerInfo storage layerInfo = layers[layerId];
-        layerInfo.chef.set(_pid, _allocPoint, _depositFeeBP, _disallowWithdraw, _maxDepositAmount, _withUpdate);
+        layerInfo.chef.set(_pid, _allocPoint, _depositFeeBP, _maxDepositAmount, _withUpdate);
     }
 
     function massUpdatePools(uint256 layerId) external onlyAdmins validLayer(layerId) nonReentrant {

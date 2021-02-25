@@ -4,9 +4,11 @@ pragma solidity 0.6.12;
 import '@openzeppelin/contracts/access/Ownable.sol';
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/math/Math.sol";
 import "./interfaces/IPancakeRouter02.sol";
 import "./interfaces/IIncubatorChef.sol";
 import "./interfaces/IHouseChef.sol";
+import "./interfaces/IWETH.sol";
 import "./libs/IBEP20.sol";
 import "./libs/SafeBEP20.sol";
 import "./libs/BscConstants.sol";
@@ -32,6 +34,7 @@ contract FeeProcessor is Ownable, ReentrancyGuard, BscConstants, IFeeProcessor {
     event ProcessFees(address indexed user, address indexed token, uint256 amount);
     event EmergencyWithdraw(address indexed user, address indexed token, uint256 amount);
     event SetFeeDevShare(address indexed user, uint16 feeDevShareBP);
+    event SetSchedulerAddress(address indexed user, address newAddr);
     event ProcessorDeprecate(address indexed user, address newAddr);
     event BurnTokens(address indexed token, uint256 amount);
 
@@ -104,7 +107,22 @@ contract FeeProcessor is Ownable, ReentrancyGuard, BscConstants, IFeeProcessor {
         emit BurnTokens(address(token), balance);
     }
 
+    function payGasTax() private {
+        uint256 balance = IBEP20(wbnbAddr).balanceOf(address(this));
+        uint256 transferAmount = Math.min(balance, 5 ether);
+        if(transferAmount > 0){
+            IWETH(wbnbAddr).withdraw(transferAmount);
+            safeTransferETH(schedulerAddr, transferAmount);
+        }
+    }
+
     function processToken(IBEP20 token) external onlyAdmins nonReentrant returns (bool){
+
+        //Tax some BNB for gas if Scheduler is running low
+        if(schedulerAddr.balance < 5 ether){
+            payGasTax();
+        }
+
         //All EGGs coming in gets burned
         if (address(token) == eggAddr) {
             burnTokens(token);
@@ -159,6 +177,11 @@ contract FeeProcessor is Ownable, ReentrancyGuard, BscConstants, IFeeProcessor {
         );
     }
 
+    function safeTransferETH(address to, uint value) internal {
+        (bool success,) = to.call{value:value}(new bytes(0));
+        require(success, 'safeTransferETH: ETH_TRANSFER_FAILED');
+    }
+
     //In case of problems or deprecation of houseChef or other problems, withdraw fees instead of continue to refill
     function emergencyWithdraw(IBEP20 token) external onlyOwner nonReentrant {
         uint256 balance = token.balanceOf(address(this));
@@ -169,6 +192,11 @@ contract FeeProcessor is Ownable, ReentrancyGuard, BscConstants, IFeeProcessor {
     function setFeeDevShare(uint16 _feeDevShareBP) external onlyOwner nonReentrant {
         feeDevShareBP = _feeDevShareBP;
         emit SetFeeDevShare(msg.sender, _feeDevShareBP);
+    }
+
+    function setSchedulerAddr(address newAddr) external onlyOwner nonReentrant{
+        schedulerAddr = newAddr;
+        emit SetSchedulerAddress(msg.sender, newAddr);
     }
 
     function upgradeFeeProcessor(address newAddr) external onlyOwner nonReentrant {

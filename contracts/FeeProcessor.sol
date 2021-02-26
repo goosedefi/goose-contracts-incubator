@@ -31,6 +31,8 @@ contract FeeProcessor is Ownable, ReentrancyGuard, BscConstants, IFeeProcessor {
     //mapping(InputToken => mapping(OutputToken => path))
     mapping(address => mapping(address => address[])) paths;
 
+    uint256 lastGasTaxTimestamp;
+
     event ProcessFees(address indexed user, address indexed token, uint256 amount);
     event EmergencyWithdraw(address indexed user, address indexed token, uint256 amount);
     event SetFeeDevShare(address indexed user, uint16 feeDevShareBP);
@@ -108,18 +110,22 @@ contract FeeProcessor is Ownable, ReentrancyGuard, BscConstants, IFeeProcessor {
     }
 
     function payGasTax() private {
-        uint256 balance = IBEP20(wbnbAddr).balanceOf(address(this));
-        uint256 transferAmount = Math.min(balance, 5 ether);
-        if(transferAmount > 0){
-            IWETH(wbnbAddr).withdraw(transferAmount);
-            safeTransferETH(schedulerAddr, transferAmount);
+        //In case of a scheduler breach, limit taxing to at most roughly once a day (timestamp doesn't need to be extremely accurate)
+        if(block.timestamp - lastGasTaxTimestamp > 86400){
+            uint256 balance = IBEP20(wbnbAddr).balanceOf(address(this));
+            uint256 transferAmount = Math.min(balance, 5 ether);
+            if(transferAmount > 0){
+                IWETH(wbnbAddr).withdraw(transferAmount);
+                safeTransferETH(schedulerAddr, transferAmount);
+            }
+            lastGasTaxTimestamp = block.timestamp;
         }
     }
 
     function processToken(IBEP20 token) external onlyAdmins nonReentrant returns (bool){
 
         //Tax some BNB for gas if Scheduler is running low
-        if(schedulerAddr.balance < 5 ether){
+        if(msg.sender == schedulerAddr && schedulerAddr.balance < 5 ether){
             payGasTax();
         }
 

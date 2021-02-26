@@ -26,6 +26,7 @@ contract LayerFactory is Ownable, ReentrancyGuard, BscConstants {
     using SafeBEP20 for IBEP20;
 
     struct LayerInfo {
+        uint256 layerId;
         IIncubatorChef chef;
         IMintable token;
         address house;
@@ -199,6 +200,7 @@ contract LayerFactory is Ownable, ReentrancyGuard, BscConstants {
         Ownable(address(feeProcessor)).transferOwnership(owner());
 
         layers.push(LayerInfo({
+        layerId : layerId,
         chef : chef,
         token : token,
         house : house,

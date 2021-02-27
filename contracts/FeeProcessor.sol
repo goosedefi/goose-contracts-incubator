@@ -172,6 +172,10 @@ contract FeeProcessor is Ownable, ReentrancyGuard, BscConstants, IFeeProcessor {
         return true;
     }
 
+    function getTxDeadline() private view returns (uint256){
+        return block.timestamp + 60;
+    }
+
     //Given X input tokens, return Y output tokens without concern about minimum/slippage
     function swapTokens(uint256 amount, IBEP20 inputToken, IBEP20 outputToken) private {
         IPancakeRouter02(routerAddr).swapExactTokensForTokensSupportingFeeOnTransferTokens(
@@ -179,7 +183,7 @@ contract FeeProcessor is Ownable, ReentrancyGuard, BscConstants, IFeeProcessor {
             0,
             getRouterPath(address(inputToken), address(outputToken)),
             address(this),
-            block.timestamp + 20
+            getTxDeadline()
         );
     }
 

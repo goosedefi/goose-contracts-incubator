@@ -105,12 +105,16 @@ contract LayerFactory is Ownable, ReentrancyGuard, BscConstants {
         return IBEP20(wbnbAddr).balanceOf(address(this));
     }
 
+    function getTxDeadline() private view returns (uint256){
+        return block.timestamp + 60;
+    }
+
     function addLiquidityBusd(uint256 layerId, IMintable token) private {
         uint256 tokenAmount = totalMint.div(2);
         IBEP20(token).safeApprove(routerAddr, tokenAmount);
         uint256 busdAmount = tokenAmount.mul(pricePerGoose);
         IBEP20(busdAddr).safeApprove(routerAddr, busdAmount);
-        IPancakeRouter01(routerAddr).addLiquidity(address(token), busdAddr, tokenAmount, busdAmount, 0, 0, address(this), block.timestamp + 10);
+        IPancakeRouter01(routerAddr).addLiquidity(address(token), busdAddr, tokenAmount, busdAmount, 0, 0, address(this), getTxDeadline());
 
         emit AddLiquidity(layerId, address(token), busdAddr, tokenAmount, busdAmount);
     }
@@ -127,11 +131,11 @@ contract LayerFactory is Ownable, ReentrancyGuard, BscConstants {
             uint256 missingAmount = expectedBnbAmount - getBnbBalance();
             uint256 missingBUSDAmount = PancakeLibrary.quote(missingAmount, reserveBnb, reserveBusd);
             IBEP20(busdAddr).safeApprove(routerAddr, missingBUSDAmount);
-            IPancakeRouter02(routerAddr).swapExactTokensForTokensSupportingFeeOnTransferTokens(missingBUSDAmount, 0, busdToBnbPath, address(this), block.timestamp + 10);
+            IPancakeRouter02(routerAddr).swapExactTokensForTokensSupportingFeeOnTransferTokens(missingBUSDAmount, 0, busdToBnbPath, address(this), getTxDeadline());
         }
         uint256 bnbAmount = Math.min(getBnbBalance(), expectedBnbAmount);
         IBEP20(wbnbAddr).safeApprove(routerAddr, bnbAmount);
-        IPancakeRouter01(routerAddr).addLiquidity(address(token), wbnbAddr, tokenAmount, bnbAmount, 0, 0, address(this), block.timestamp + 10);
+        IPancakeRouter01(routerAddr).addLiquidity(address(token), wbnbAddr, tokenAmount, bnbAmount, 0, 0, address(this), getTxDeadline());
 
         emit AddLiquidity(layerId, address(token), wbnbAddr, tokenAmount, bnbAmount);
     }
@@ -224,7 +228,7 @@ contract LayerFactory is Ownable, ReentrancyGuard, BscConstants {
         address lpToken = PancakeLibrary.pairFor(factory, gooseToken, busdAddr);
         uint256 balance = IBEP20(lpToken).balanceOf(address(this));
         IBEP20(lpToken).safeApprove(routerAddr, balance);
-        IPancakeRouter01(routerAddr).removeLiquidity(gooseToken, busdAddr, balance, 0, 0, address(this), block.timestamp + 10);
+        IPancakeRouter01(routerAddr).removeLiquidity(gooseToken, busdAddr, balance, 0, 0, address(this), getTxDeadline());
 
         emit RemoveLiquidity(layerId, gooseToken, busdAddr, balance);
     }
@@ -236,7 +240,7 @@ contract LayerFactory is Ownable, ReentrancyGuard, BscConstants {
         address lpToken = PancakeLibrary.pairFor(factory, gooseToken, wbnbAddr);
         uint256 balance = IBEP20(lpToken).balanceOf(address(this));
         IBEP20(lpToken).safeApprove(routerAddr, balance);
-        IPancakeRouter01(routerAddr).removeLiquidity(gooseToken, wbnbAddr, balance, 0, 0, address(this), block.timestamp + 10);
+        IPancakeRouter01(routerAddr).removeLiquidity(gooseToken, wbnbAddr, balance, 0, 0, address(this), getTxDeadline());
 
         emit RemoveLiquidity(layerId, gooseToken, wbnbAddr, balance);
     }

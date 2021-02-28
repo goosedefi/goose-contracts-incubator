@@ -9,10 +9,10 @@ import "./IIncubatorChef.sol";
 interface IIncubatorChefFactory{
     function createNewIncubatorChef(
         uint256 layerId,
-        IMintable goose,
+        IMintable dutch,
         address devaddr,
         address feeAddress,
-        uint256 goosePerBlock,
+        uint256 dutchPerBlock,
         uint256 startBlock
     ) external returns (IIncubatorChef);
 }

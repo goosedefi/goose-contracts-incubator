@@ -9,7 +9,7 @@ interface IFeeProcessorFactory{
     function createNewFeeProcessor(
         uint256 layerId,
         address _schedulerAddr,
-        address _gooseToken,
+        address _dutchToken,
         address _houseChef,
         address _houseToken,
         address _feeHolder,

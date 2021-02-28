@@ -38,7 +38,7 @@ contract LayerFactory is Ownable, ReentrancyGuard, BscConstants {
     LayerInfo[] public layers;
     address public timelock;
     address public schedulerAddr;
-    address public gooseHolder;
+    address public dutchHolder;
     address public feeHolder;
     ITokenFactory public tokenFactory;
     IHouseFactory public houseFactory;
@@ -49,7 +49,7 @@ contract LayerFactory is Ownable, ReentrancyGuard, BscConstants {
     uint256 public houseEmitRate = 1.5 ether;
 
     uint256 public totalMint = 20000 ether;
-    uint256 public pricePerGoose = 1;
+    uint256 public pricePerDutch = 1;
 
     uint16 public feeDevShareBP = 1000;
     uint16 public houseShareBP = 3000;
@@ -57,10 +57,10 @@ contract LayerFactory is Ownable, ReentrancyGuard, BscConstants {
     address[] busdToBnbPath = [busdAddr, wbnbAddr];
 
     event CreateNewLayer(address indexed user, uint256 indexed layerId);
-    event AddLiquidity(uint256 indexed layerId, address indexed gooseToken, address indexed priceToken, uint256 gooseAmount, uint256 priceAmount);
-    event RemoveLiquidity(uint256 indexed layerId, address indexed gooseToken, address indexed priceToken, uint256 lpAmount);
+    event AddLiquidity(uint256 indexed layerId, address indexed dutchToken, address indexed priceToken, uint256 dutchAmount, uint256 priceAmount);
+    event RemoveLiquidity(uint256 indexed layerId, address indexed dutchToken, address indexed priceToken, uint256 lpAmount);
     event SetFeeHolder(address indexed user, address feeHolder);
-    event SetGooseHolder(address indexed user, address gooseHolder);
+    event SetDutchHolder(address indexed user, address dutchHolder);
     event SetScheduler(address indexed user, address scheduler);
     event StartTimelock(address indexed user, uint256 indexed layerId);
     event UpdateNewLayerSettings(address indexed user);
@@ -69,7 +69,7 @@ contract LayerFactory is Ownable, ReentrancyGuard, BscConstants {
     constructor(
         address _schedulerAddr,
         address _feeHolder,
-        address _gooseHolder,
+        address _dutchHolder,
         address _timelock,
         address _tokenFactory,
         address _houseFactory,
@@ -78,7 +78,7 @@ contract LayerFactory is Ownable, ReentrancyGuard, BscConstants {
     ) public {
         schedulerAddr = _schedulerAddr;
         feeHolder = _feeHolder;
-        gooseHolder = _gooseHolder;
+        dutchHolder = _dutchHolder;
         timelock = _timelock;
         tokenFactory = ITokenFactory(_tokenFactory);
         houseFactory = IHouseFactory(_houseFactory);
@@ -112,7 +112,7 @@ contract LayerFactory is Ownable, ReentrancyGuard, BscConstants {
     function addLiquidityBusd(uint256 layerId, IMintable token) private {
         uint256 tokenAmount = totalMint.div(2);
         IBEP20(token).safeApprove(routerAddr, tokenAmount);
-        uint256 busdAmount = tokenAmount.mul(pricePerGoose);
+        uint256 busdAmount = tokenAmount.mul(pricePerDutch);
         IBEP20(busdAddr).safeApprove(routerAddr, busdAmount);
         IPancakeRouter01(routerAddr).addLiquidity(address(token), busdAddr, tokenAmount, busdAmount, 0, 0, address(this), getTxDeadline());
 
@@ -125,7 +125,7 @@ contract LayerFactory is Ownable, ReentrancyGuard, BscConstants {
 
         uint256 tokenAmount = totalMint.div(2);
         IBEP20(token).safeApprove(routerAddr, tokenAmount);
-        uint256 busdAmount = tokenAmount.mul(pricePerGoose);
+        uint256 busdAmount = tokenAmount.mul(pricePerDutch);
         uint256 expectedBnbAmount = PancakeLibrary.quote(busdAmount, reserveBusd, reserveBnb);
         if (expectedBnbAmount > getBnbBalance()) {
             uint256 missingAmount = expectedBnbAmount - getBnbBalance();
@@ -146,11 +146,11 @@ contract LayerFactory is Ownable, ReentrancyGuard, BscConstants {
         return house;
     }
 
-    function spawnNewFeeProcessor(uint256 layerId, address houseChef, address gooseToken) private returns (IFeeProcessor){
+    function spawnNewFeeProcessor(uint256 layerId, address houseChef, address dutchToken) private returns (IFeeProcessor){
         IFeeProcessor feeProcessor = feeProcessorFactory.createNewFeeProcessor(
             layerId,
             schedulerAddr,
-            gooseToken,
+            dutchToken,
             houseChef,
             address(houseToken),
             feeHolder,
@@ -165,7 +165,7 @@ contract LayerFactory is Ownable, ReentrancyGuard, BscConstants {
         IIncubatorChef chef = incubatorChefFactory.createNewIncubatorChef(
             layerId,
             token,
-            gooseHolder,
+            dutchHolder,
             feeProcessor,
             _tokenPerBlock,
             _startBlock
@@ -224,25 +224,25 @@ contract LayerFactory is Ownable, ReentrancyGuard, BscConstants {
     function removeBUSDLiquidity(uint256 layerId) external onlyAdmins validLayer(layerId) nonReentrant {
         LayerInfo storage layerInfo = layers[layerId];
         address factory = IPancakeRouter01(routerAddr).factory();
-        address gooseToken = address(layerInfo.token);
-        address lpToken = PancakeLibrary.pairFor(factory, gooseToken, busdAddr);
+        address dutchToken = address(layerInfo.token);
+        address lpToken = PancakeLibrary.pairFor(factory, dutchToken, busdAddr);
         uint256 balance = IBEP20(lpToken).balanceOf(address(this));
         IBEP20(lpToken).safeApprove(routerAddr, balance);
-        IPancakeRouter01(routerAddr).removeLiquidity(gooseToken, busdAddr, balance, 0, 0, address(this), getTxDeadline());
+        IPancakeRouter01(routerAddr).removeLiquidity(dutchToken, busdAddr, balance, 0, 0, address(this), getTxDeadline());
 
-        emit RemoveLiquidity(layerId, gooseToken, busdAddr, balance);
+        emit RemoveLiquidity(layerId, dutchToken, busdAddr, balance);
     }
 
     function removeWBNBLiquidity(uint256 layerId) external onlyAdmins validLayer(layerId) nonReentrant {
         LayerInfo storage layerInfo = layers[layerId];
         address factory = IPancakeRouter01(routerAddr).factory();
-        address gooseToken = address(layerInfo.token);
-        address lpToken = PancakeLibrary.pairFor(factory, gooseToken, wbnbAddr);
+        address dutchToken = address(layerInfo.token);
+        address lpToken = PancakeLibrary.pairFor(factory, dutchToken, wbnbAddr);
         uint256 balance = IBEP20(lpToken).balanceOf(address(this));
         IBEP20(lpToken).safeApprove(routerAddr, balance);
-        IPancakeRouter01(routerAddr).removeLiquidity(gooseToken, wbnbAddr, balance, 0, 0, address(this), getTxDeadline());
+        IPancakeRouter01(routerAddr).removeLiquidity(dutchToken, wbnbAddr, balance, 0, 0, address(this), getTxDeadline());
 
-        emit RemoveLiquidity(layerId, gooseToken, wbnbAddr, balance);
+        emit RemoveLiquidity(layerId, dutchToken, wbnbAddr, balance);
     }
 
     function addPool(uint256 layerId, uint256 _allocPoint, IBEP20 _lpToken, uint16 _depositFeeBP, uint256 _maxDepositAmount, bool _withUpdate) external onlyAdmins validLayer(layerId) nonReentrant {
@@ -269,11 +269,11 @@ contract LayerFactory is Ownable, ReentrancyGuard, BscConstants {
         emit StartTimelock(msg.sender, layerId);
     }
 
-    function setGooseHolder(address newAddr) external nonReentrant {
-        require(msg.sender == gooseHolder, "setGooseHolder: FORBIDDEN");
-        gooseHolder = newAddr;
+    function setDutchHolder(address newAddr) external nonReentrant {
+        require(msg.sender == dutchHolder, "setDutchHolder: FORBIDDEN");
+        dutchHolder = newAddr;
 
-        emit SetGooseHolder(msg.sender, newAddr);
+        emit SetDutchHolder(msg.sender, newAddr);
     }
 
     function setFeeHolder(address newAddr) external nonReentrant {
@@ -293,14 +293,14 @@ contract LayerFactory is Ownable, ReentrancyGuard, BscConstants {
         address _houseToken,
         uint256 _houseEmitRate,
         uint256 _totalMint,
-        uint256 _pricePerGoose,
+        uint256 _pricePerDutch,
         uint16 _feeDevShareBP,
         uint16 _houseShareBP
     ) external onlyOwner nonReentrant {
         houseToken = IBEP20(_houseToken);
         houseEmitRate = _houseEmitRate;
         totalMint = _totalMint;
-        pricePerGoose = _pricePerGoose;
+        pricePerDutch = _pricePerDutch;
         feeDevShareBP = _feeDevShareBP;
         houseShareBP = _houseShareBP;
 

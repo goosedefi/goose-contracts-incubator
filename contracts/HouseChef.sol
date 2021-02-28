@@ -139,7 +139,7 @@ contract HouseChef is Ownable, ReentrancyGuard, IHouseChef, BscConstants {
         rewardToken.safeTransferFrom(address(msg.sender), address(this), _amount);
     }
 
-    // Deposit LP tokens to Chef for GOOSE allocation.
+    // Deposit LP tokens to Chef for dutch allocation.
     function deposit(uint256 _amount) public nonReentrant {
         PoolInfo storage pool = poolInfo[0];
         UserInfo storage user = userInfo[msg.sender];
@@ -190,7 +190,7 @@ contract HouseChef is Ownable, ReentrancyGuard, IHouseChef, BscConstants {
         emit EmergencyWithdraw(msg.sender, amount);
     }
 
-    // Safe goose transfer function, just in case if rounding error causes pool to not have enough GOOSEs.
+    // Safe dutch transfer function, just in case if rounding error causes pool to not have enough dutchs.
     function safeRewardTransfer(address _to, uint256 _amount) internal {
         uint256 balance = rewardToken.balanceOf(address(this));
         uint256 transferAmount = Math.min(balance, _amount);

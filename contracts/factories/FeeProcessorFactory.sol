@@ -13,7 +13,7 @@ contract FeeProcessorFactory is IFeeProcessorFactory, Ownable {
     function createNewFeeProcessor(
         uint256 layerId,
         address _schedulerAddr,
-        address _gooseToken,
+        address _dutchToken,
         address _houseChef,
         address _houseToken,
         address _feeHolder,
@@ -22,7 +22,7 @@ contract FeeProcessorFactory is IFeeProcessorFactory, Ownable {
     ) override external onlyOwner returns (IFeeProcessor){
         FeeProcessor processor = new FeeProcessor{salt : bytes32(layerId)}(
             _schedulerAddr,
-            _gooseToken,
+            _dutchToken,
             _houseChef,
             _houseToken,
             _feeHolder,

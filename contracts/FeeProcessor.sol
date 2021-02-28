@@ -20,7 +20,7 @@ contract FeeProcessor is Ownable, ReentrancyGuard, BscConstants, IFeeProcessor {
 
     address public schedulerAddr;
     address public feeHolder;
-    IBEP20 public gooseToken;
+    IBEP20 public dutchToken;
     IBEP20 public houseToken;
     IHouseChef public houseChef;
     IIncubatorChef public incubatorChef;
@@ -42,7 +42,7 @@ contract FeeProcessor is Ownable, ReentrancyGuard, BscConstants, IFeeProcessor {
 
     constructor(
         address _schedulerAddr,
-        address _gooseToken,
+        address _dutchToken,
         address _houseChef,
         address _houseToken,
         address _feeHolder,
@@ -50,7 +50,7 @@ contract FeeProcessor is Ownable, ReentrancyGuard, BscConstants, IFeeProcessor {
         uint16 _houseShareBP
     ) public {
         schedulerAddr = _schedulerAddr;
-        gooseToken = IBEP20(_gooseToken);
+        dutchToken = IBEP20(_dutchToken);
         houseChef = IHouseChef(_houseChef);
         houseToken = IBEP20(_houseToken);
         feeHolder = _feeHolder;
@@ -71,8 +71,8 @@ contract FeeProcessor is Ownable, ReentrancyGuard, BscConstants, IFeeProcessor {
             paths[autoAddr][busdAddr] = [autoAddr, wbnbAddr, busdAddr];
             paths[adaAddr][busdAddr] = [adaAddr, wbnbAddr, busdAddr];
 
-            //Buy Goose Path
-            paths[busdAddr][address(gooseToken)] = [busdAddr, address(gooseToken)];
+            //Buy dutch Path
+            paths[busdAddr][address(dutchToken)] = [busdAddr, address(dutchToken)];
         }
     }
 
@@ -164,9 +164,9 @@ contract FeeProcessor is Ownable, ReentrancyGuard, BscConstants, IFeeProcessor {
             swapTokens(buybackAmount, token, IBEP20(busdAddr));
             finalAmount = IBEP20(busdAddr).balanceOf(address(this)).sub(startAmount);
         }
-        swapTokens(finalAmount, IBEP20(busdAddr), gooseToken);
-        //Burn all goose tokens
-        burnTokens(gooseToken);
+        swapTokens(finalAmount, IBEP20(busdAddr), dutchToken);
+        //Burn all dutch tokens
+        burnTokens(dutchToken);
 
         emit ProcessFees(msg.sender, address(token), balance);
         return true;

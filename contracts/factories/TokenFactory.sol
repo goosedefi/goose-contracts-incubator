@@ -3,7 +3,7 @@
 pragma solidity 0.6.12;
 
 import "../interfaces/ITokenFactory.sol";
-import "../GooseToken.sol";
+import "../DutchToken.sol";
 
 contract TokenFactory is ITokenFactory, Ownable {
 
